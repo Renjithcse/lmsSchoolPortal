@@ -1,6 +1,10 @@
 # LMSOld: SchoolPortalAdmin (CRA) + schoolbackend (Express) in ONE image.
 # Canonical production path — SPA + API on a single process (port 3001).
-# Do not COPY config.env — secrets come from compose env_file / environment at runtime.
+#
+# Secrets: do NOT bake schoolbackend/config.env. `.dockerignore` excludes it
+# (and `.env`). Runtime config comes only from compose `env_file: .env`.
+# `COPY schoolbackend/ ./` below never includes config.env when dockerignore is intact.
+# Local/dev may still use config.env via server.js dotenv; production must not.
 
 # ---------- frontend ----------
 FROM node:18-bookworm-slim AS frontend-build

@@ -1,7 +1,8 @@
 # LMSOld admin — single combined service (CRA SPA + Express API in one container).
-# Mongo is NOT started here — point MONGO_URI in .env at host Mongo (usually :27017).
+# Mongo is a separate compose stack on external network `lmsold_net`
+# (hostname `mongodb`). Do not start Mongo here.
 #
-# Domain deploy (default https://admin.digitechpro.in — override via .env):
+# Domain deploy (override via .env — e.g. https://admin.example.com):
 #   - Secrets stay in .env via env_file (never bake into the image).
 #   - Set FRONTEND_URL=https://YOUR_ADMIN_HOST in .env (CORS + Secure cookies).
 #   - Deploy helper: LMSOLD_PUBLIC_URL=https://YOUR_ADMIN_HOST ./deploy.sh
@@ -14,6 +15,9 @@
 # Run from this directory (lmsold/), not a parent monorepo folder.
 # Plain deploy folder: sync schoolbackend/ + SchoolPortalAdmin/ + deploy files
 # onto the server together. See docs/DEPLOY.md.
+#
+# Prerequisite: create/attach Mongo on the same external network, e.g.
+#   networks: { lmsold_net: { external: true } }  # or name: lmsold_net
 
 name: lmsold
 
@@ -33,7 +37,7 @@ services:
       PORT: "3001"
       # Do not set MONGO_URI / FRONTEND_URL / token secrets here — compose
       # `environment` always wins over env_file. Put them in .env only
-      # (use host.docker.internal for Mongo; encode @ in passwords as %40).
+      # (use hostname `mongodb` on lmsold_net; encode @ in passwords as %40).
     volumes:
       - lmsold_uploads:/app/public/uploads
     ports:
@@ -41,7 +45,14 @@ services:
       # - "127.0.0.1:3001:3001"
       # Do NOT publish host :80 — Caddy owns 80/443.
       - "127.0.0.1:3001:3001"
+    networks:
+      - lmsold_net
     restart: unless-stopped
 
 volumes:
   lmsold_uploads:
+
+networks:
+  lmsold_net:
+    external: true
+    name: lmsold_net

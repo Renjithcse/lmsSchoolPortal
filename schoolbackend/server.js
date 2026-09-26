@@ -6,14 +6,57 @@ process.on("uncaughtException", (err) => {
 });
 
 //* Import modules **********************************************
-require("dotenv").config({ path: "./config.env" });
+const fs = require("fs");
+const path = require("path");
+
+// Env precedence (Docker / production):
+// 1) process.env from Compose `env_file: .env` / `environment` always wins
+// 2) Local/dev only: load schoolbackend/config.env when MONGO_URI is unset
+// Never use override:true — compose values must not be clobbered by config.env.
+// config.env is dockerignored; if an old image still has it, skip when MONGO_URI is set.
+const configEnvPath = path.join(__dirname, "config.env");
+const mongoAlreadySet = Boolean(
+	process.env.MONGO_URI && String(process.env.MONGO_URI).trim()
+);
+if (!mongoAlreadySet && fs.existsSync(configEnvPath)) {
+	require("dotenv").config({ path: configEnvPath, override: false });
+} else if (mongoAlreadySet) {
+	console.log("MONGO_URI already set by environment; skipping config.env");
+}
+
 const mongoose = require("mongoose");
 const seedCountries = require("./seeder/seeder"); // adjust path as needed
 const app = require("./app");
 
 //* DB Connection **************************************************
+function mongoHostForLog(uri) {
+	if (!uri) return "(unset)";
+	try {
+		const normalized = String(uri).replace(/^mongodb(\+srv)?:\/\//i, "http://");
+		return new URL(normalized).hostname || "(unknown)";
+	} catch {
+		return "(unparseable)";
+	}
+}
+
+function assertMongoUriSafeInContainer(uri) {
+	const inDocker = fs.existsSync("/.dockerenv");
+	if (!inDocker && process.env.NODE_ENV !== "production") return;
+	const host = mongoHostForLog(uri);
+	if (host === "127.0.0.1" || host === "localhost" || host === "::1") {
+		console.error(
+			`Refusing MONGO_URI host "${host}" inside Docker/production. ` +
+				"Use hostname `mongodb` on network lmsold_net (or host.docker.internal / Atlas). " +
+				"Set MONGO_URI in lmsold/.env and recreate the container — do not use config.env in the image."
+		);
+		process.exit(1);
+	}
+}
+
 console.log("Attempting to connect to MongoDB...");
 console.log("MongoDB URI:", process.env.MONGO_URI ? "Set" : "Not set");
+console.log("MongoDB host:", mongoHostForLog(process.env.MONGO_URI));
+assertMongoUriSafeInContainer(process.env.MONGO_URI);
 
 mongoose
 	.connect(process.env.MONGO_URI, {

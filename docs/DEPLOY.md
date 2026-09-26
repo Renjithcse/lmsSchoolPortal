@@ -51,7 +51,7 @@ Clone once; subsequent deploys pull + rebuild:
 | Docker Engine + Compose plugin | `docker compose version` |
 | Git | Repo already cloned; deploy uses `git pull --ff-only` |
 | Source tree | `schoolbackend/` + `SchoolPortalAdmin/` (from the clone) |
-| MongoDB | Reachable from the container (usually host port `27017` via `host.docker.internal`) |
+| MongoDB | Separate compose stack on external network `lmsold_net` (hostname `mongodb`); see `.env.example` |
 | DNS | A record for your admin host → EC2 public IP |
 | TLS reverse proxy | Caddy (preferred) or nginx — see [`deploy/`](../deploy/) |
 | Security group | Inbound **80** and **443**. Prefer **not** opening **3001** publicly when TLS terminates on the host |
@@ -79,20 +79,20 @@ Set at least:
 ```text
 NODE_ENV=production
 PORT=3001
-FRONTEND_URL=https://admin.digitechpro.in
-MONGO_URI=mongodb://USER:PASS@host.docker.internal:27017/nwis?authSource=admin
+FRONTEND_URL=https://admin.example.com
+MONGO_URI=mongodb://admin:CHANGE_ME@mongodb:27017/nwis?authSource=admin
 ACCESS_TOKEN_SECRET=<long-random-string>
 REFRESH_TOKEN_SECRET=<long-random-string>
 ```
 
-For a custom domain, set `FRONTEND_URL=https://admin.example.com` (same origin you will put in DNS / Caddy).
+`FRONTEND_URL` is configurable — set it to your real public origin (e.g. `https://admin.globalfotech.net`), matching DNS / Caddy.
 
-Encode `@` in Mongo passwords as `%40`. Use `host.docker.internal`, not `127.0.0.1`, so the container can reach host Mongo.
+Encode `@` in Mongo passwords as `%40` (e.g. `Admin@2025` → `Admin%402025`). Prefer hostname `mongodb` on external network `lmsold_net` (compose attaches `lmsold-app` there). Never use `127.0.0.1`/`localhost` inside the app container. Fallback for host-published Mongo: `host.docker.internal`.
 
 | Variable | Production value |
 |----------|------------------|
 | `FRONTEND_URL` | Public `https://…` origin (must be **https** when TLS is live — drives cookie `Secure` + CORS) |
-| `MONGO_URI` | Host Mongo via `host.docker.internal`, or Atlas URI |
+| `MONGO_URI` | `mongodb://…@mongodb:27017/…?authSource=admin` on `lmsold_net`, or Atlas / `host.docker.internal` |
 | `PORT` | `3001` (app listen; matches compose + Caddy upstream) |
 
 Compose loads secrets via `env_file: .env`. It does **not** override `MONGO_URI` or `FRONTEND_URL` — change domain by editing `.env` (and Caddy), then recreate/reload.
@@ -313,6 +313,145 @@ If the server still has `lmsold-backend` / `lmsold-frontend` containers (aborted
 5. `./deploy.sh`
 6. Seed/verify as above. Uploads volume name remains `lmsold_uploads`.
 
+## Host Mongo from the container (Linux / EC2)
+
+Compose does **not** start Mongo. `lmsold-app` reaches host Mongo via
+`host.docker.internal` (see `extra_hosts: host.docker.internal:host-gateway`
+in `docker-compose.admin.yml`). On Linux that name resolves to the docker0
+gateway (often `172.17.0.1`), **not** to `127.0.0.1`.
+
+### Why you see `ECONNREFUSED 172.17.0.1:27017`
+
+Typical log shape:
+
+```text
+MongoDB connection error: connect ECONNREFUSED 172.17.0.1:27017
+MongooseServerSelectionError ... servers: Map(1) { 'host.docker.internal:27017' => ... }
+```
+
+That means DNS/`extra_hosts` is working (`host.docker.internal` → docker bridge),
+but nothing accepts TCP on that address:port. Common causes (ordered):
+
+1. **mongod is not running** on the EC2 host.
+2. **mongod listens only on `127.0.0.1`** — packets to `172.17.0.1:27017` never hit it.
+3. **Security group / firewall** is irrelevant for this path (docker0 is on-host),
+   but a local firewall rule could still drop docker0 → host traffic.
+
+`127.0.0.1` inside the container is the container itself — never use that for host Mongo.
+
+### Env loading (production)
+
+- Compose injects `MONGO_URI` from **lmsold `.env`** (`env_file`).
+- `server.js` loads `./config.env` **only when `MONGO_URI` is unset** (local/dev).
+  When Compose already set `MONGO_URI`, `config.env` is skipped (`override: false`).
+- Production/Docker refuses `127.0.0.1` / `localhost` as the Mongo host and logs
+  the resolved hostname so a bad URI is obvious in `docker logs`.
+- The image must not bake `config.env` (see `.dockerignore`); keep production URI in `.env`.
+
+### Fix steps (run on the EC2 host)
+
+**1. Confirm mongod and what it binds**
+
+```bash
+sudo systemctl status mongod
+# or: sudo systemctl status mongodb
+
+sudo ss -ltnp | grep 27017
+# Expect something like:
+#   LISTEN 0 ... 127.0.0.1:27017   → only loopback (container cannot reach via docker0)
+#   LISTEN 0 ... 0.0.0.0:27017     → reachable via host.docker.internal
+#   LISTEN 0 ... 172.17.0.1:27017  → reachable via docker bridge only
+```
+
+**2. Confirm compose hostname (should already be present)**
+
+```bash
+grep -A2 extra_hosts docker-compose.admin.yml
+# Expect: host.docker.internal:host-gateway
+
+docker exec lmsold-app getent hosts host.docker.internal
+# Expect a docker0 gateway IP (often 172.17.0.1)
+```
+
+**3. Pick one safe approach (prefer A or B)**
+
+**A — Keep mongod on loopback; use host networking for the app (simplest on a single EC2)**
+
+In `docker-compose.admin.yml` for `lmsold-app`:
+
+- set `network_mode: host`
+- remove `ports:` (host mode publishes the process port directly)
+- keep `MONGO_URI` with `127.0.0.1:27017` (or `localhost`)
+
+Only do this if nothing else conflicts on host port `3001`.
+
+**B — Run Mongo in Docker on external network `lmsold_net` (preferred)**
+
+`docker-compose.admin.yml` attaches `lmsold-app` to external network `lmsold_net`.
+Run Mongo as a separate stack on that same network (service name `mongodb`), set:
+
+```text
+MONGO_URI=mongodb://admin:CHANGE_ME@mongodb:27017/nwis?authSource=admin
+```
+
+(Encode `@` in the password as `%40`.) Prefer not publishing `27017` on a public interface.
+
+**C — Widen mongod bind carefully (works with current compose + `host.docker.internal`)**
+
+Edit Mongo config (often `/etc/mongod.conf`):
+
+```yaml
+net:
+  port: 27017
+  bindIp: 127.0.0.1,172.17.0.1
+  # or, if you understand the exposure: bindIp: 0.0.0.0
+```
+
+Then:
+
+```bash
+sudo systemctl restart mongod
+sudo ss -ltnp | grep 27017
+```
+
+If you bind `0.0.0.0`, **restrict with firewall** so `27017` is not open to the
+internet (security group + `ufw`/`iptables`). Prefer binding docker0 only, or
+options A/B.
+
+**4. Point `.env` at a reachable host**
+
+```text
+# Preferred (option B — external lmsold_net):
+MONGO_URI=mongodb://admin:CHANGE_ME@mongodb:27017/nwis?authSource=admin
+# Host-published Mongo (option C):
+# MONGO_URI=mongodb://USER:PASS@host.docker.internal:27017/nwis?authSource=admin
+```
+
+(With option A, use `127.0.0.1` instead of `mongodb` / `host.docker.internal`.)
+
+**5. Recreate the app and verify**
+
+```bash
+docker compose -f docker-compose.admin.yml up -d --force-recreate lmsold-app
+docker logs -f lmsold-app
+# Expect: MongoDB connected: ...
+```
+
+From the host (optional smoke test):
+
+```bash
+# When mongod listens on 0.0.0.0 or docker0:
+mongosh --host 172.17.0.1 --port 27017
+# or from inside the container:
+docker exec -it lmsold-app sh -c 'getent hosts host.docker.internal; # then use mongosh/nc if installed'
+```
+
+### AWS SDK v2 deprecation
+
+If logs also show an AWS SDK for JavaScript v2 maintenance warning, that is
+**non-blocking** and unrelated to Mongo. Migrate to AWS SDK v3 later; ignore for
+connectivity.
+
 ## Common pitfalls
 
 | Symptom | Likely cause |
@@ -320,7 +459,9 @@ If the server still has `lmsold-backend` / `lmsold-frontend` containers (aborted
 | Login cookie missing / Secure issues | `FRONTEND_URL` is `http://…` while the site is HTTPS (or the reverse). |
 | Wrong CORS / cookies after domain move | `.env` `FRONTEND_URL` still old; use `SYNC_FRONTEND_URL=1` or edit `.env`. |
 | Caddy cert for wrong host | Site name in Caddyfile ≠ DNS / `LMSOLD_PUBLIC_URL` host — regenerate + reload. |
-| Mongo connection refused | `MONGO_URI` still uses `127.0.0.1` / `localhost` inside the container. Use `host.docker.internal`. |
+| Mongo `ECONNREFUSED` to `172.17.0.1:27017` | Host mongod down, or bound to `127.0.0.1` only while compose uses `host.docker.internal` → docker0. See section above. |
+| Mongo connection refused (`127.0.0.1` in URI) | `MONGO_URI` still uses `127.0.0.1` / `localhost` **inside** the container (bridge mode). Use `mongodb` on `lmsold_net`, `host.docker.internal`, or `network_mode: host`. |
+| App restart loop / Caddy 502 | Mongo unreachable or bad `MONGO_URI` → process exits. Fix `.env`, ensure `lmsold_net` exists and Mongo is up, then `up -d --force-recreate`. |
 | `:80` already allocated | Another container or docker-proxy published host 80. Stop it; Caddy needs 80/443. |
 | HTTPS OK for lms but not admin | Missing `admin` site block in `/etc/caddy/Caddyfile`, or DNS A record missing. |
 | SPA loads but API 502 | App down, or Caddy still pointing SPA at old `:3002`. |
