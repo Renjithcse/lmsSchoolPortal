@@ -1,0 +1,40 @@
+# Keep the daemon payload small. Build context is this directory (lmsold/).
+
+.git
+**/.git
+**/.DS_Store
+
+# Dependencies and build artifacts (frontend is built in the image)
+**/node_modules
+SchoolPortalAdmin/node_modules
+schoolbackend/node_modules
+SchoolPortalAdmin/build
+SchoolPortalAdmin/build.zip
+**/coverage
+**/dist
+
+# Local uploads (compose volume at runtime)
+schoolbackend/public/uploads
+
+# Secrets — runtime only via compose env_file (.env), never bake into the image
+schoolbackend/config.env
+schoolbackend/config.env.live
+.env
+.env.*
+!.env.example
+
+# Docs / host deploy samples (not needed in the image)
+README.md
+docs
+deploy
+deploy.sh
+docker-compose*.yml
+
+# Logs / IDE
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.vscode
+**/.idea
+**/.cache

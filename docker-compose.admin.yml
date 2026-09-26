@@ -1,0 +1,44 @@
+# LMSOld admin — single combined service (CRA SPA + Express API in one container).
+# Mongo is NOT started here — point MONGO_URI in .env at host Mongo (usually :27017).
+#
+# Domain deploy (https://admin.digitechpro.in):
+#   - Secrets stay in .env via env_file (never bake into the image).
+#   - Caddy/nginx TLS on the host → prefer loopback bind below.
+#   - Caddy proxies all of admin.digitechpro.in → 127.0.0.1:3001
+#     (Express serves /api, /uploads, and the SPA).
+# Full runbook: docs/DEPLOY.md
+#
+# Run from this directory (lmsold/), not a parent monorepo folder.
+# Plain deploy folder: sync schoolbackend/ + SchoolPortalAdmin/ + deploy files
+# onto the server together. See docs/DEPLOY.md.
+
+name: lmsold
+
+services:
+  lmsold-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lmsold-app:latest
+    container_name: lmsold-app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Do not set MONGO_URI / FRONTEND_URL / token secrets here — compose
+      # `environment` always wins over env_file. Put them in .env only
+      # (use host.docker.internal for Mongo; encode @ in passwords as %40).
+    volumes:
+      - lmsold_uploads:/app/public/uploads
+    ports:
+      # With Caddy/nginx TLS on the host, prefer loopback (recommended):
+      # - "127.0.0.1:3001:3001"
+      # Do NOT publish host :80 — Caddy owns 80/443.
+      - "127.0.0.1:3001:3001"
+    restart: unless-stopped
+
+volumes:
+  lmsold_uploads:

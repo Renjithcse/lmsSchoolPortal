@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets — never commit real credentials
+.env
+.env.*
+!.env.example
+schoolbackend/config.env
+schoolbackend/config.env.live
+**/config.env
+**/config.env.live
+!**/*.env.example
+!**/config.env.example
+!**/config.env.live.example
+
+# Large seed data (cities.json ~51MB; not required at runtime — only for seeder)
+# Obtain/generate locally or use Git LFS if you must version it.
+schoolbackend/seeder/cities.json
+
+# Logs and runtime
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+dist/
+build/
+coverage/
+.nyc_output/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*~

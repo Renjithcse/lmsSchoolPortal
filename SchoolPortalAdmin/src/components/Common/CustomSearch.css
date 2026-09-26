@@ -1,0 +1,8 @@
+.custom-search-field {
+    width: 150px !important; /* Initial width */
+    transition: width 0.3s ease !important; /* Transition effect for width change */
+}
+
+.custom-search-field:hover {
+    width: 200px !important; /* Width when hovered over */
+}

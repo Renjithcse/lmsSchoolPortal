@@ -1,0 +1,21 @@
+# Combined host TLS — one Caddy process owns ports 80 + 443 for both apps.
+#
+# Use this when lms-web and lmsold share the same EC2 instance. Do NOT run a
+# second reverse proxy (or docker-proxy) bound to :80/:443 alongside Caddy.
+#
+#   sudo cp /path/to/lmsold/deploy/caddy/Caddyfile.combined /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Targets (loopback binds recommended in each compose file):
+#   lms.digitechpro.in   → lms-web container     :3000
+#   admin.digitechpro.in → lmsold combined app   :3001
+
+lms.digitechpro.in {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}
+
+admin.digitechpro.in {
+	encode gzip
+	reverse_proxy 127.0.0.1:3001
+}
