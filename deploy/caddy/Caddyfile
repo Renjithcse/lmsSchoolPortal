@@ -1,13 +1,25 @@
 # LMSOld admin — Caddy reverse proxy (preferred)
 #
-# Install Caddy on the EC2 host, point DNS A record for admin.digitechpro.in at
+# Default digitechpro hostnames below. To use another domain, either:
+#   1. Generate from env (recommended):
+#        LMSOLD_PUBLIC_URL=https://admin.example.com ./deploy.sh
+#        # writes deploy/caddy/Caddyfile.generated (+ combined)
+#        sudo cp deploy/caddy/Caddyfile.generated /etc/caddy/Caddyfile
+#        # or: INSTALL_CADDY=1 CADDY_MODE=admin ./deploy.sh
+#   2. Edit the site name below to match your host, then copy to /etc/caddy/.
+#
+# The Caddy site name MUST match the public DNS name (and FRONTEND_URL host).
+#
+# Install Caddy on the EC2 host, point DNS A record for your admin host at
 # this server, open security group ports 80 + 443, then either:
 #
 #   # Admin only (if lms-web uses a separate proxy host):
 #   sudo cp deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+#   # or the generated file after ./deploy.sh
 #
-#   # Shared host with lms.digitechpro.in — use ONE Caddyfile that owns :80/:443:
+#   # Shared host with lms — use ONE Caddyfile that owns :80/:443:
 #   sudo cp deploy/caddy/Caddyfile.combined /etc/caddy/Caddyfile
+#   # or: INSTALL_CADDY=1 CADDY_MODE=combined ./deploy.sh
 #
 #   sudo systemctl enable --now caddy
 #   sudo systemctl reload caddy

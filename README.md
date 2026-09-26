@@ -36,15 +36,20 @@ From the parent monorepo folder (thin wrapper):
 docker compose -f docker-compose.lmsold.yml up -d --build
 ```
 
-## Production (admin.digitechpro.in)
+## Production (domain + TLS)
 
-See [`docs/DEPLOY.md`](docs/DEPLOY.md). Short path:
+See [`docs/DEPLOY.md`](docs/DEPLOY.md). Short path (clone once, then deploy pulls + rebuilds):
 
 ```bash
-cp .env.example .env   # FRONTEND_URL=https://admin.digitechpro.in, Mongo, JWT secrets
-./deploy.sh
-# Install combined Caddyfile (admin → :3001) — see docs/DEPLOY.md
+git clone https://github.com/Renjithcse/lmsSchoolPortal.git
+cd lmsSchoolPortal
+cp .env.example .env   # set FRONTEND_URL, Mongo, JWT secrets
+./deploy.sh             # default public URL: https://admin.digitechpro.in
+# Custom domain + sync .env + install combined Caddy:
+# LMSOLD_PUBLIC_URL=https://admin.example.com SYNC_FRONTEND_URL=1 INSTALL_CADDY=1 ./deploy.sh
 ```
+
+Canonical domain env: **`LMSOLD_PUBLIC_URL`** (or `ADMIN_DOMAIN=host`). Keep `.env` `FRONTEND_URL` matching that origin.
 
 ## Stop
 

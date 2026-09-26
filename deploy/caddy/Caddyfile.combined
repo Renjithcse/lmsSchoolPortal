@@ -1,5 +1,12 @@
 # Combined host TLS — one Caddy process owns ports 80 + 443 for both apps.
 #
+# Default digitechpro hostnames below. To use other domains:
+#   LMSOLD_PUBLIC_URL=https://admin.example.com \
+#   LMS_APP_URL=https://lms.example.com \
+#   INSTALL_CADDY=1 CADDY_MODE=combined ./deploy.sh
+# That writes deploy/caddy/Caddyfile.combined.generated and installs it.
+# Site names MUST match DNS + FRONTEND_URL (admin) / APP_URL (lms-web).
+#
 # Use this when lms-web and lmsold share the same EC2 instance. Do NOT run a
 # second reverse proxy (or docker-proxy) bound to :80/:443 alongside Caddy.
 #

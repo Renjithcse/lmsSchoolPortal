@@ -18,6 +18,10 @@ schoolbackend/config.env.live
 # Obtain/generate locally or use Git LFS if you must version it.
 schoolbackend/seeder/cities.json
 
+# Generated Caddy configs (from ./deploy.sh domain env)
+deploy/caddy/Caddyfile.generated
+deploy/caddy/Caddyfile.combined.generated
+
 # Logs and runtime
 *.log
 npm-debug.log*

@@ -1,10 +1,13 @@
 # LMSOld admin — single combined service (CRA SPA + Express API in one container).
 # Mongo is NOT started here — point MONGO_URI in .env at host Mongo (usually :27017).
 #
-# Domain deploy (https://admin.digitechpro.in):
+# Domain deploy (default https://admin.digitechpro.in — override via .env):
 #   - Secrets stay in .env via env_file (never bake into the image).
+#   - Set FRONTEND_URL=https://YOUR_ADMIN_HOST in .env (CORS + Secure cookies).
+#   - Deploy helper: LMSOLD_PUBLIC_URL=https://YOUR_ADMIN_HOST ./deploy.sh
+#     (optionally SYNC_FRONTEND_URL=1 / INSTALL_CADDY=1 — see docs/DEPLOY.md).
 #   - Caddy/nginx TLS on the host → prefer loopback bind below.
-#   - Caddy proxies all of admin.digitechpro.in → 127.0.0.1:3001
+#   - Caddy site name must match FRONTEND_URL host → 127.0.0.1:3001
 #     (Express serves /api, /uploads, and the SPA).
 # Full runbook: docs/DEPLOY.md
 #
