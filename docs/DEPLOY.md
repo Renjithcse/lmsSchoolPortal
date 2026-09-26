@@ -1,8 +1,8 @@
 # Deploy LMSOld admin to production (EC2 + domain)
 
-Target example: **https://admin.digitechpro.in** on an EC2 host where **this repo** is already cloned from GitHub (`https://github.com/Renjithcse/lmsSchoolPortal.git`).
+Target example: **https://admin.globalfotech.net** on an EC2 host where **this repo** is already cloned from GitHub (`https://github.com/Renjithcse/lmsSchoolPortal.git`).
 
-The public domain is **not hard-coded**. Default remains digitechpro; override with **`LMSOLD_PUBLIC_URL`** (canonical, same idea as lms-web’s `LMS_APP_URL`).
+The public domain is **not hard-coded**. Default is globalfotech; override with **`LMSOLD_PUBLIC_URL`** (canonical, same idea as lms-web’s `LMS_APP_URL`).
 
 LMSOld runs as **one** Docker service:
 
@@ -20,10 +20,10 @@ Mongo is external (host or Atlas). Do **not** split into separate frontend/backe
 
 | Variable | Role | Default |
 |----------|------|---------|
-| **`LMSOLD_PUBLIC_URL`** | **Canonical** public origin for admin (scheme + host). Used by `./deploy.sh` (print, Caddy generate, optional `.env` sync). | `https://admin.digitechpro.in` |
+| **`LMSOLD_PUBLIC_URL`** | **Canonical** public origin for admin (scheme + host). Used by `./deploy.sh` (print, Caddy generate, optional `.env` sync). | `https://admin.globalfotech.net` |
 | `ADMIN_DOMAIN` | Host-only shorthand if `LMSOLD_PUBLIC_URL` is unset → `https://$ADMIN_DOMAIN` | — |
 | **`FRONTEND_URL`** | Runtime CORS + Secure cookies (loaded from `.env` via compose `env_file`) | Must match browser origin / `LMSOLD_PUBLIC_URL` |
-| `LMS_APP_URL` | Sibling lms-web origin when generating **combined** Caddy | `https://lms.digitechpro.in` |
+| `LMS_APP_URL` | Sibling lms-web origin when generating **combined** Caddy | `https://lms.globalfotech.net` |
 | `LMS_DOMAIN` | Host-only shorthand if `LMS_APP_URL` is unset | — |
 | `SYNC_FRONTEND_URL=1` | Rewrite `.env` `FRONTEND_URL` to `LMSOLD_PUBLIC_URL` | off |
 | `WRITE_CADDY=1` | Write `deploy/caddy/Caddyfile*.generated` (default on) | on |
@@ -102,7 +102,7 @@ Compose loads secrets via `env_file: .env`. It does **not** override `MONGO_URI`
 Create an **A** record for your admin host (default example):
 
 ```text
-admin.digitechpro.in  →  <EC2 public IPv4>
+admin.globalfotech.net  →  <EC2 public IPv4>
 # or: admin.example.com → <EC2 public IPv4>
 ```
 
@@ -118,10 +118,18 @@ Wait until `dig +short <admin-host>` returns the EC2 IP before requesting certif
 - `deploy/caddy/Caddyfile.combined.generated` — lms + admin
 
 ```bash
-# Digitechpro defaults (no extra env needed):
+# Globalfotech defaults (no extra env needed):
 ./deploy.sh
 
-# Custom admin (+ optional lms) hosts, sync .env, install combined Caddy:
+# Explicit both hosts (shared EC2 with lms-web), sync .env, install combined Caddy:
+LMSOLD_PUBLIC_URL=https://admin.globalfotech.net \
+LMS_APP_URL=https://lms.globalfotech.net \
+SYNC_FRONTEND_URL=1 \
+INSTALL_CADDY=1 \
+CADDY_MODE=combined \
+./deploy.sh
+
+# Other custom admin (+ optional lms) hosts:
 LMSOLD_PUBLIC_URL=https://admin.example.com \
 LMS_APP_URL=https://lms.example.com \
 SYNC_FRONTEND_URL=1 \
@@ -132,7 +140,7 @@ CADDY_MODE=combined \
 
 Site names in the generated file **must** match DNS and `FRONTEND_URL` / lms `APP_URL`.
 
-### Shared host with lms (static digitechpro samples)
+### Shared host with lms (static globalfotech samples)
 
 One Caddy process must own **:80** and **:443**. Do not also bind docker-proxy or a second nginx/Caddy to those ports.
 
@@ -148,12 +156,12 @@ sudo systemctl reload caddy
 Default sample routes:
 
 ```caddy
-lms.digitechpro.in {
+lms.globalfotech.net {
 	encode gzip
 	reverse_proxy 127.0.0.1:3000
 }
 
-admin.digitechpro.in {
+admin.globalfotech.net {
 	encode gzip
 	reverse_proxy 127.0.0.1:3001
 }
@@ -214,7 +222,7 @@ There is no Prisma/SQL migrate step (Mongo + Mongoose).
 ```bash
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/
 curl -fsS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/api/v1/auth/refresh
-curl -fsSI https://admin.digitechpro.in   # or your LMSOLD_PUBLIC_URL
+curl -fsSI https://admin.globalfotech.net   # or your LMSOLD_PUBLIC_URL
 # open the public URL and sign in
 ```
 
@@ -235,7 +243,7 @@ cd ~/Projects/lmsSchoolPortal
 
 `deploy.sh` will:
 
-1. Resolve / print `LMSOLD_PUBLIC_URL` (default digitechpro)
+1. Resolve / print `LMSOLD_PUBLIC_URL` (default globalfotech)
 2. Optionally sync `FRONTEND_URL` and write/install Caddy
 3. `git pull --ff-only` (fails safely if local commits diverge)
 4. `docker compose -f docker-compose.admin.yml up -d --build`

@@ -1,6 +1,6 @@
 # LMSOld admin — Caddy reverse proxy (preferred)
 #
-# Default digitechpro hostnames below. To use another domain, either:
+# Default globalfotech hostnames below. To use another domain, either:
 #   1. Generate from env (recommended):
 #        LMSOLD_PUBLIC_URL=https://admin.example.com ./deploy.sh
 #        # writes deploy/caddy/Caddyfile.generated (+ combined)
@@ -31,7 +31,7 @@
 #
 # Same-origin /api keeps CORS simple (CRA live BASE_URL is "/api/").
 
-admin.digitechpro.in {
+admin.globalfotech.net {
 	encode gzip
 	reverse_proxy 127.0.0.1:3001
 }

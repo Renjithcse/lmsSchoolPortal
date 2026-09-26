@@ -1,6 +1,6 @@
 # Combined host TLS — one Caddy process owns ports 80 + 443 for both apps.
 #
-# Default digitechpro hostnames below. To use other domains:
+# Default globalfotech hostnames below. To use other domains:
 #   LMSOLD_PUBLIC_URL=https://admin.example.com \
 #   LMS_APP_URL=https://lms.example.com \
 #   INSTALL_CADDY=1 CADDY_MODE=combined ./deploy.sh
@@ -14,15 +14,15 @@
 #   sudo systemctl reload caddy
 #
 # Targets (loopback binds recommended in each compose file):
-#   lms.digitechpro.in   → lms-web container     :3000
-#   admin.digitechpro.in → lmsold combined app   :3001
+#   lms.globalfotech.net   → lms-web container     :3000
+#   admin.globalfotech.net → lmsold combined app   :3001
 
-lms.digitechpro.in {
+lms.globalfotech.net {
 	encode gzip
 	reverse_proxy 127.0.0.1:3000
 }
 
-admin.digitechpro.in {
+admin.globalfotech.net {
 	encode gzip
 	reverse_proxy 127.0.0.1:3001
 }

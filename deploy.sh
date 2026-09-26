@@ -29,8 +29,8 @@ CADDY_MODE="${CADDY_MODE:-combined}" # combined | admin
 
 # Canonical public origin for LMSOld admin (scheme + host, no trailing slash).
 # Prefer LMSOLD_PUBLIC_URL. ADMIN_DOMAIN=host is a shorthand → https://$ADMIN_DOMAIN.
-DEFAULT_LMSOLD_PUBLIC_URL="https://admin.digitechpro.in"
-DEFAULT_LMS_APP_URL="https://lms.digitechpro.in"
+DEFAULT_LMSOLD_PUBLIC_URL="https://admin.globalfotech.net"
+DEFAULT_LMS_APP_URL="https://lms.globalfotech.net"
 
 if [[ -z "${LMSOLD_PUBLIC_URL:-}" && -n "${ADMIN_DOMAIN:-}" ]]; then
   LMSOLD_PUBLIC_URL="https://${ADMIN_DOMAIN}"
@@ -53,12 +53,12 @@ Run from the lmsold git repo root (this directory), e.g.:
   cd ~/Projects/lmsSchoolPortal && ./deploy.sh
 
 Environment:
-  LMSOLD_PUBLIC_URL  Canonical public origin (default: https://admin.digitechpro.in).
+  LMSOLD_PUBLIC_URL  Canonical public origin (default: https://admin.globalfotech.net).
                      Drives printed domain, Caddy generation, and optional .env sync.
   ADMIN_DOMAIN       Host-only shorthand if LMSOLD_PUBLIC_URL unset
                      (e.g. admin.example.com → https://admin.example.com).
   LMS_APP_URL        Sibling lms-web origin for combined Caddy
-                     (default: https://lms.digitechpro.in).
+                     (default: https://lms.globalfotech.net).
   LMS_DOMAIN         Host-only shorthand if LMS_APP_URL unset.
   SYNC_FRONTEND_URL  Set to 1 to rewrite FRONTEND_URL in .env to LMSOLD_PUBLIC_URL.
   WRITE_CADDY        Set to 0 to skip writing deploy/caddy/*.generated (default: 1).

@@ -44,9 +44,11 @@ See [`docs/DEPLOY.md`](docs/DEPLOY.md). Short path (clone once, then deploy pull
 git clone https://github.com/Renjithcse/lmsSchoolPortal.git
 cd lmsSchoolPortal
 cp .env.example .env   # set FRONTEND_URL, Mongo, JWT secrets
-./deploy.sh             # default public URL: https://admin.digitechpro.in
+./deploy.sh             # default public URL: https://admin.globalfotech.net
 # Custom domain + sync .env + install combined Caddy:
 # LMSOLD_PUBLIC_URL=https://admin.example.com SYNC_FRONTEND_URL=1 INSTALL_CADDY=1 ./deploy.sh
+# Shared host with lms-web:
+# LMS_APP_URL=https://lms.globalfotech.net LMSOLD_PUBLIC_URL=https://admin.globalfotech.net INSTALL_CADDY=1 ./deploy.sh
 ```
 
 Canonical domain env: **`LMSOLD_PUBLIC_URL`** (or `ADMIN_DOMAIN=host`). Keep `.env` `FRONTEND_URL` matching that origin.

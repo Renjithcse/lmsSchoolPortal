@@ -8,10 +8,19 @@ Configs for terminating HTTPS on the EC2 host and proxying LMSOld:
 
 | Path | Use |
 |------|-----|
-| [`caddy/Caddyfile`](caddy/Caddyfile) | Preferred defaults — `admin.digitechpro.in` only |
-| [`caddy/Caddyfile.combined`](caddy/Caddyfile.combined) | Shared host defaults — `lms` + `admin` digitechpro |
+| [`caddy/Caddyfile`](caddy/Caddyfile) | Preferred defaults — `admin.globalfotech.net` only |
+| [`caddy/Caddyfile.combined`](caddy/Caddyfile.combined) | Shared host defaults — `lms.globalfotech.net` + `admin.globalfotech.net` |
 | `caddy/Caddyfile*.generated` | Written by `./deploy.sh` from `LMSOLD_PUBLIC_URL` / `LMS_APP_URL` (gitignored) |
 | [`nginx/admin.digitechpro.in.conf`](nginx/admin.digitechpro.in.conf) | Optional nginx + certbot (edit `server_name` for custom domains) |
+
+**Shared host with lms-web — regenerate combined Caddy with both origins:**
+
+```bash
+LMS_APP_URL=https://lms.globalfotech.net \
+LMSOLD_PUBLIC_URL=https://admin.globalfotech.net \
+INSTALL_CADDY=1 CADDY_MODE=combined \
+./deploy.sh
+```
 
 **Change domain:** set `LMSOLD_PUBLIC_URL` (or `ADMIN_DOMAIN`), keep `.env` `FRONTEND_URL` in sync (`SYNC_FRONTEND_URL=1`), regenerate/install Caddy (`INSTALL_CADDY=1`). See [`docs/DEPLOY.md`](../docs/DEPLOY.md).
 
